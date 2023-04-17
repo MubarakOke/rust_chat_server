@@ -20,10 +20,12 @@ fn main() {
     let mut clients= vec![];
     let (tx, rx)= mpsc::channel::<String>();
 
+    println!("waiting fot incoming connection.............");
+
     loop {
         if let Ok((mut client, addr)) = server.accept() {
             println!("client connected at {}", addr);
-            let info= (client.try_clone().expect("unable to clone"), addr);
+            let info= (client.try_clone().expect("unable to clone client"), addr);
             clients.push(info);
             let tx= tx.clone();
 
@@ -35,7 +37,7 @@ fn main() {
                             println!("message {} form {:?}", msg, addr);
                             tx.send(msg).expect("unable to send message");
                         },
-                        Err(e) if e.kind() == ErrorKind::WouldBlock => {},
+                        Err(ref e) if e.kind() == ErrorKind::WouldBlock => {},
                         Err(e) => {
                             println!("error reading message {}", e);
                             println!("closing connection with {}", addr);
@@ -46,10 +48,19 @@ fn main() {
                 };
                 }   
             );
-            
-
-
         }
+
+        if let Ok(msg)= rx.try_recv() {
+            clients= clients.into_iter().map(|mut item|{
+                if item.0.local_addr().expect("unable to get local address") == item.1 {
+                    return item;
+                }
+                item.0.write_all(msg.as_bytes()).expect("un able to send message");
+                item
+            }).collect();
+        }
+
+        sleep_func()
     }
 
 }
