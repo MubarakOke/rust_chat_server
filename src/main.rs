@@ -11,6 +11,7 @@ use std::time::Duration;
 const LOCAL: &str= "127.0.0.1:7007";
 
 #[allow(unused_variables)]
+#[allow(unused_mut)]
 fn main() {
     println!("setting up server");
     let server= TcpListener::bind(LOCAL).expect("failed to setup server");
@@ -32,18 +33,25 @@ fn main() {
             thread::spawn(move || {
                 loop {
                     let mut msg= String::new();
-                    match client.read_to_string(&mut msg){
-                        Ok(_)=>{
-                            println!("message {} form {:?}", msg, addr);
-                            tx.send(msg).expect("unable to send message");
+                    // let mut msg= msg.as_bytes();
+                    // client.read_to_string(&mut msg).expect("error");
+                    // let mut buffer = [0; 1];
+                    let mut buffer = Vec::new();
+                    match client.read_to_end(&mut buffer){
+                        Ok(f)=>{
+                            // println!("message {} form {}", msg.to_string(), addr);
+                            // tx.send(msg.to_str).expect("unable to send message");
+                            println!("{}",f);
                         },
-                        Err(ref e) if e.kind() == ErrorKind::WouldBlock => {},
+                        Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                            println!("empty");
+                        },
                         Err(e) => {
-                            println!("error reading message {}", e);
                             println!("closing connection with {}", addr);
                             break;
                         }
                     }
+                    println!("after match");
                     sleep_func();
                 };
                 }   
@@ -66,5 +74,5 @@ fn main() {
 }
 
 fn sleep_func(){
-    sleep(Duration::from_millis(100));
+    sleep(Duration::from_millis(2500));
 }
